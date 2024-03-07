@@ -21,30 +21,33 @@ const getAllImages = async (req, res) => {
     res.status(404).json({ message: "No files found!" });
   }
 
-  var [lock, unlock] = newLock();
+  else {
 
-  var imageLinks = [];
+    var [lock, unlock] = newLock();
 
-  let count = 0;
+    var imageLinks = [];
 
-  for (let image of images) {
-    imageUrl = await getObjectSignedUrl(image.image)
-    imageLinks.push({ imageURL: imageUrl })
-    count++;
+    let count = 0;
 
-    if (count === images.length)
-      unlock();
+    for (let image of images) {
+      imageUrl = await getObjectSignedUrl(image.image)
+      imageLinks.push({ imageURL: imageUrl })
+      count++;
+
+      if (count === images.length)
+        unlock();
+    }
+
+    await lock;
+
+    res.status(200).send(imageLinks)
   }
-
-  await lock;
-
-  res.status(200).send(imageLinks)
 }
 
 const getSingleImage = async (req, res) => {
-console.log(req.params.id);
+  console.log(req.params.id);
   const image = await Images.find({ image: req.params.id });
-  if (image.length===0) {
+  if (image.length === 0) {
     res.status(404).json({ message: "File not found!" });
   }
 
