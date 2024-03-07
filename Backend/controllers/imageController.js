@@ -13,9 +13,13 @@ function newLock() {
   return [lock, unlock];
 }
 
-const getAllImages =  async (req, res) => {
-  const images = await Images.find({});
+const getAllImages = async (req, res) => {
+  const images = await Images.find();
   // console.log(images);
+
+  if (images.length === 0) {
+    res.status(404).json({ message: "No files found!" });
+  }
 
   var [lock, unlock] = newLock();
 
@@ -24,12 +28,12 @@ const getAllImages =  async (req, res) => {
   let count = 0;
 
   for (let image of images) {
-      imageUrl = await getObjectSignedUrl(image.image)
-      imageLinks.push({ imageURL: imageUrl })
-      count++;
+    imageUrl = await getObjectSignedUrl(image.image)
+    imageLinks.push({ imageURL: imageUrl })
+    count++;
 
-      if (count === images.length)
-          unlock();
+    if (count === images.length)
+      unlock();
   }
 
   await lock;
@@ -38,9 +42,19 @@ const getAllImages =  async (req, res) => {
 }
 
 const getSingleImage = async (req, res) => {
+console.log(req.params.id);
+  const image = await Images.find({ image: req.params.id });
+  if (image.length===0) {
+    res.status(404).json({ message: "File not found!" });
+  }
 
-  imageUrl = await getObjectSignedUrl(req.params.id);
-  res.status(200).json({ imageURL: imageUrl })
+  else {
+
+    console.log(image);
+    imageUrl = await getObjectSignedUrl(req.params.id);
+
+    res.status(200).json({ imageURL: imageUrl })
+  }
 }
 
 const uploadImage = async (req, res) => {
@@ -50,8 +64,8 @@ const uploadImage = async (req, res) => {
   const imageName = generateFileName()
 
   const fileBuffer = await sharp(file.buffer)
-      .resize({ height: 1920, width: 1080, fit: "contain" })
-      .toBuffer()
+    .resize({ height: 1920, width: 1080, fit: "contain" })
+    .toBuffer()
 
   await uploadFile(fileBuffer, imageName, file.mimetype)
 
@@ -62,12 +76,25 @@ const uploadImage = async (req, res) => {
 
 const deleteImage = async (req, res) => {
   const id = req.params.id
-  const image = await Images.find({image:id})
+  const image = await Images.find({ image: id })
 
-  await deleteFile(id)
+  console.log(image)
 
-  await Images.deleteOne({id:image.id})
-  res.send(image)
+  if (image.length === 0) {
+    console.log("hi")
+    res.status(404).json({ message: "File not found!" });
+    // throw new Error("File Not Found!")
+  }
+
+  else {
+
+    console.log("hello")
+
+    await deleteFile(id)
+
+    await Images.deleteOne({ image: id })
+    res.status(200).send(image)
+  }
 }
 
-module.exports = {getAllImages,getSingleImage,uploadImage,deleteImage};
+module.exports = { getAllImages, getSingleImage, uploadImage, deleteImage };
